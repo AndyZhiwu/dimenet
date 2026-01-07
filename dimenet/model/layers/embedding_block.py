@@ -6,7 +6,7 @@ from ..initializers import GlorotOrthogonal
 
 
 class EmbeddingBlock(nn.Module):
-    def __init__(self, emb_size, activation=None):
+    def __init__(self, emb_size, num_radial, activation=None):
         super().__init__()
         self.emb_size = emb_size
         self.activation = activation
@@ -15,7 +15,7 @@ class EmbeddingBlock(nn.Module):
         self.embeddings = nn.Parameter(torch.empty(95, emb_size))
         nn.init.uniform_(self.embeddings, -np.sqrt(3), np.sqrt(3))
 
-        self.dense_rbf = nn.Linear(emb_size, emb_size, bias=True)
+        self.dense_rbf = nn.Linear(num_radial, emb_size, bias=True)
         self.dense = nn.Linear(emb_size * 3, emb_size, bias=True)
         
         # Initialize weights

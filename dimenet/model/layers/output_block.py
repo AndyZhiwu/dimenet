@@ -6,12 +6,16 @@ from ..initializers import GlorotOrthogonal
 
 class OutputBlock(nn.Module):
     def __init__(self, emb_size, num_dense, num_targets=12,
-                 activation=None, output_init='zeros'):
+                 num_radial=None, activation=None, output_init='zeros'):
         super().__init__()
         self.activation = activation
         weight_init = GlorotOrthogonal()
 
-        self.dense_rbf = nn.Linear(emb_size, emb_size, bias=False)
+        # If num_radial is not provided, assume it's the same as emb_size (for backward compatibility)
+        if num_radial is None:
+            num_radial = emb_size
+
+        self.dense_rbf = nn.Linear(num_radial, emb_size, bias=False)
         weight_init(self.dense_rbf.weight)
         
         self.dense_layers = nn.ModuleList()

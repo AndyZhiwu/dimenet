@@ -59,20 +59,20 @@ class DimeNet(nn.Module):
 
         # Embedding and first output block
         self.output_blocks = nn.ModuleList()
-        self.emb_block = EmbeddingBlock(emb_size, activation=activation)
+        self.emb_block = EmbeddingBlock(emb_size, num_radial, activation=activation)
         self.output_blocks.append(
             OutputBlock(emb_size, num_dense_output, num_targets,
-                        activation=activation, output_init=output_init))
+                        num_radial=num_radial, activation=activation, output_init=output_init))
 
         # Interaction and remaining output blocks
         self.int_blocks = nn.ModuleList()
         for i in range(num_blocks):
             self.int_blocks.append(
                 InteractionBlock(emb_size, num_bilinear, num_before_skip,
-                                 num_after_skip, activation=activation))
+                                 num_after_skip, num_radial, num_spherical, activation=activation))
             self.output_blocks.append(
                 OutputBlock(emb_size, num_dense_output, num_targets,
-                            activation=activation, output_init=output_init))
+                            num_radial=num_radial, activation=activation, output_init=output_init))
 
     def calculate_interatomic_distances(self, R, idx_i, idx_j):
         Ri = R[idx_i]

@@ -7,15 +7,15 @@ from ..initializers import GlorotOrthogonal
 
 class InteractionPPBlock(nn.Module):
     def __init__(self, emb_size, int_emb_size, basis_emb_size, num_before_skip, num_after_skip,
-                 activation=None):
+                 num_radial, num_spherical, activation=None):
         super().__init__()
         self.activation = activation
         weight_init = GlorotOrthogonal()
 
         # Transformations of Bessel and spherical basis representations
-        self.dense_rbf1 = nn.Linear(basis_emb_size, basis_emb_size, bias=False)
+        self.dense_rbf1 = nn.Linear(num_radial, basis_emb_size, bias=False)
         self.dense_rbf2 = nn.Linear(basis_emb_size, emb_size, bias=False)
-        self.dense_sbf1 = nn.Linear(basis_emb_size, basis_emb_size, bias=False)
+        self.dense_sbf1 = nn.Linear(num_spherical * num_radial, basis_emb_size, bias=False)
         self.dense_sbf2 = nn.Linear(basis_emb_size, int_emb_size, bias=False)
         weight_init(self.dense_rbf1.weight)
         weight_init(self.dense_rbf2.weight)
