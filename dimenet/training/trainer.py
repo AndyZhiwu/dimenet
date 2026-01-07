@@ -36,7 +36,7 @@ class Trainer:
         
         # Update learning rate
         self.step_count += 1
-        new_lr = self.learning_rate_schedule(self.step_count)
+        new_lr = self.learning_rate_schedule(float(self.step_count))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = new_lr
         

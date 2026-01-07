@@ -48,7 +48,7 @@ class Metrics:
     @property
     def loss(self):
         if self.loss_count > 0:
-            return (self.loss_sum / self.loss_count).item() if isinstance(self.loss_sum, torch.Tensor) else self.loss_sum / self.loss_count
+            return self.loss_sum / self.loss_count
         return 0.0
 
     @property
@@ -60,7 +60,7 @@ class Metrics:
     @property
     def mean_mae(self):
         if self.mean_mae_count > 0:
-            return (self.mean_mae_sum / self.mean_mae_count).item() if isinstance(self.mean_mae_sum, torch.Tensor) else self.mean_mae_sum / self.mean_mae_count
+            return self.mean_mae_sum / self.mean_mae_count
         return 0.0
 
     @property
