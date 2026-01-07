@@ -1,4 +1,5 @@
-import tensorflow as tf
+import torch
+import torch.nn.functional as F
 
 
 def swish(x):
@@ -6,8 +7,8 @@ def swish(x):
     Swish activation function,
     from Ramachandran, Zopf, Le 2017. "Searching for Activation Functions"
     """
-    return x*tf.sigmoid(x)
+    return x * torch.sigmoid(x)
 
 
 def shifted_softplus(x):
-    return tf.nn.softplus(x) - tf.log(2.0)
+    return F.softplus(x) - torch.log(torch.tensor(2.0))

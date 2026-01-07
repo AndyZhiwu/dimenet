@@ -1,21 +1,20 @@
 import sympy as sym
-import tensorflow as tf
-from tensorflow.keras import layers
+import torch
+import torch.nn as nn
 
 from .basis_utils import bessel_basis, real_sph_harm
 from .envelope import Envelope
 
 
-class SphericalBasisLayer(layers.Layer):
-    def __init__(self, num_spherical, num_radial, cutoff, envelope_exponent=5,
-                 name='spherical_basis', **kwargs):
-        super().__init__(name=name, **kwargs)
+class SphericalBasisLayer(nn.Module):
+    def __init__(self, num_spherical, num_radial, cutoff, envelope_exponent=5):
+        super().__init__()
 
         assert num_radial <= 64
         self.num_radial = num_radial
         self.num_spherical = num_spherical
 
-        self.inv_cutoff = tf.constant(1 / cutoff, dtype=tf.float32)
+        self.inv_cutoff = torch.tensor(1 / cutoff, dtype=torch.float32)
         self.envelope = Envelope(envelope_exponent)
 
         # retrieve formulas
@@ -24,31 +23,34 @@ class SphericalBasisLayer(layers.Layer):
         self.sph_funcs = []
         self.bessel_funcs = []
 
-        # convert to tensorflow functions
+        # convert to pytorch functions
         x = sym.symbols('x')
         theta = sym.symbols('theta')
         for i in range(num_spherical):
             if i == 0:
-                first_sph = sym.lambdify([theta], self.sph_harm_formulas[i][0], 'tensorflow')(0)
-                self.sph_funcs.append(lambda tensor: tf.zeros_like(tensor) + first_sph)
+                first_sph = sym.lambdify([theta], self.sph_harm_formulas[i][0], 'numpy')(0)
+                self.sph_funcs.append(lambda tensor: torch.zeros_like(tensor) + first_sph)
             else:
-                self.sph_funcs.append(sym.lambdify([theta], self.sph_harm_formulas[i][0], 'tensorflow'))
+                # Create lambda with numpy backend and wrap with torch
+                sph_func = sym.lambdify([theta], self.sph_harm_formulas[i][0], 'numpy')
+                self.sph_funcs.append(lambda t, f=sph_func: torch.tensor(f(t.cpu().numpy()), dtype=t.dtype, device=t.device))
             for j in range(num_radial):
-                self.bessel_funcs.append(sym.lambdify([x], self.bessel_formulas[i][j], 'tensorflow'))
+                bessel_func = sym.lambdify([x], self.bessel_formulas[i][j], 'numpy')
+                self.bessel_funcs.append(lambda t, f=bessel_func: torch.tensor(f(t.cpu().numpy()), dtype=t.dtype, device=t.device))
 
-    def call(self, inputs):
+    def forward(self, inputs):
         d, Angles, id_expand_kj = inputs
 
         d_scaled = d * self.inv_cutoff
         rbf = [f(d_scaled) for f in self.bessel_funcs]
-        rbf = tf.stack(rbf, axis=1)
+        rbf = torch.stack(rbf, dim=1)
 
         d_cutoff = self.envelope(d_scaled)
-        rbf_env = d_cutoff[:, None] * rbf
-        rbf_env = tf.gather(rbf_env, id_expand_kj)
+        rbf_env = d_cutoff.unsqueeze(1) * rbf
+        rbf_env = rbf_env[id_expand_kj]
 
         cbf = [f(Angles) for f in self.sph_funcs]
-        cbf = tf.stack(cbf, axis=1)
-        cbf = tf.repeat(cbf, self.num_radial, axis=1)
+        cbf = torch.stack(cbf, dim=1)
+        cbf = cbf.repeat_interleave(self.num_radial, dim=1)
 
         return rbf_env * cbf

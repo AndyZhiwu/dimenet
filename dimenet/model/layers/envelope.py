@@ -1,13 +1,13 @@
-import tensorflow as tf
-from tensorflow.keras import layers
+import torch
+import torch.nn as nn
 
 
-class Envelope(layers.Layer):
+class Envelope(nn.Module):
     """
     Envelope function that ensures a smooth cutoff
     """
-    def __init__(self, exponent, name='envelope', **kwargs):
-        super().__init__(name=name, **kwargs)
+    def __init__(self, exponent):
+        super().__init__()
         self.exponent = exponent
 
         self.p = exponent + 1
@@ -15,9 +15,9 @@ class Envelope(layers.Layer):
         self.b = self.p * (self.p + 2)
         self.c = -self.p * (self.p + 1) / 2
 
-    def call(self, inputs):
+    def forward(self, inputs):
 
         # Envelope function divided by r
         env_val = 1 / inputs + self.a * inputs**(self.p - 1) + self.b * inputs**self.p + self.c * inputs**(self.p + 1)
 
-        return tf.where(inputs < 1, env_val, tf.zeros_like(inputs))
+        return torch.where(inputs < 1, env_val, torch.zeros_like(inputs))
