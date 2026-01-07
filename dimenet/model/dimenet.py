@@ -1,4 +1,5 @@
-import tensorflow as tf
+import torch
+import torch.nn as nn
 
 from .layers.embedding_block import EmbeddingBlock
 from .layers.bessel_basis_layer import BesselBasisLayer
@@ -8,7 +9,7 @@ from .layers.output_block import OutputBlock
 from .activations import swish
 
 
-class DimeNet(tf.keras.Model):
+class DimeNet(nn.Module):
     """
     DimeNet model.
 
@@ -46,8 +47,8 @@ class DimeNet(tf.keras.Model):
             self, emb_size, num_blocks, num_bilinear, num_spherical,
             num_radial, cutoff=5.0, envelope_exponent=5, num_before_skip=1,
             num_after_skip=2, num_dense_output=3, num_targets=12,
-            activation=swish, output_init='zeros', name='dimenet', **kwargs):
-        super().__init__(name=name, **kwargs)
+            activation=swish, output_init='zeros', **kwargs):
+        super().__init__()
         self.num_blocks = num_blocks
 
         # Cosine basis function expansion layer
@@ -57,14 +58,14 @@ class DimeNet(tf.keras.Model):
             num_spherical, num_radial, cutoff=cutoff, envelope_exponent=envelope_exponent)
 
         # Embedding and first output block
-        self.output_blocks = []
+        self.output_blocks = nn.ModuleList()
         self.emb_block = EmbeddingBlock(emb_size, activation=activation)
         self.output_blocks.append(
             OutputBlock(emb_size, num_dense_output, num_targets,
                         activation=activation, output_init=output_init))
 
         # Interaction and remaining output blocks
-        self.int_blocks = []
+        self.int_blocks = nn.ModuleList()
         for i in range(num_blocks):
             self.int_blocks.append(
                 InteractionBlock(emb_size, num_bilinear, num_before_skip,
@@ -74,32 +75,32 @@ class DimeNet(tf.keras.Model):
                             activation=activation, output_init=output_init))
 
     def calculate_interatomic_distances(self, R, idx_i, idx_j):
-        Ri = tf.gather(R, idx_i)
-        Rj = tf.gather(R, idx_j)
+        Ri = R[idx_i]
+        Rj = R[idx_j]
         # ReLU prevents negative numbers in sqrt
-        Dij = tf.sqrt(tf.nn.relu(tf.reduce_sum((Ri - Rj)**2, -1)))
+        Dij = torch.sqrt(torch.relu(torch.sum((Ri - Rj)**2, -1)))
         return Dij
 
     def calculate_neighbor_angles(self, R, id3_i, id3_j, id3_k):
         """Calculate angles for neighboring atom triplets"""
-        Ri = tf.gather(R, id3_i)
-        Rj = tf.gather(R, id3_j)
-        Rk = tf.gather(R, id3_k)
+        Ri = R[id3_i]
+        Rj = R[id3_j]
+        Rk = R[id3_k]
         R1 = Rj - Ri
         R2 = Rk - Ri  # This should actually be `Rk - Rj`. Change it if you're not using a pretrained model, since the correct version performs better.
-        x = tf.reduce_sum(R1 * R2, axis=-1)
-        y = tf.linalg.cross(R1, R2)
-        y = tf.norm(y, axis=-1)
-        angle = tf.math.atan2(y, x)
+        x = torch.sum(R1 * R2, dim=-1)
+        y = torch.linalg.cross(R1, R2)
+        y = torch.norm(y, dim=-1)
+        angle = torch.atan2(y, x)
         return angle
 
-    def call(self, inputs):
+    def forward(self, inputs):
         Z, R                         = inputs['Z'], inputs['R']
         batch_seg                    = inputs['batch_seg']
         idnb_i, idnb_j               = inputs['idnb_i'], inputs['idnb_j']
         id_expand_kj, id_reduce_ji   = inputs['id_expand_kj'], inputs['id_reduce_ji']
         id3dnb_i, id3dnb_j, id3dnb_k = inputs['id3dnb_i'], inputs['id3dnb_j'], inputs['id3dnb_k']
-        n_atoms = tf.shape(Z)[0]
+        n_atoms = Z.shape[0]
 
         # Calculate distances
         Dij = self.calculate_interatomic_distances(R, idnb_i, idnb_j)
@@ -119,5 +120,5 @@ class DimeNet(tf.keras.Model):
             x = self.int_blocks[i]([x, rbf, sbf, id_expand_kj, id_reduce_ji])
             P += self.output_blocks[i+1]([x, rbf, idnb_i, n_atoms])
 
-        P = tf.math.segment_sum(P, batch_seg)
+        P = torch.zeros(batch_seg.max().item() + 1, P.shape[-1], dtype=P.dtype, device=P.device).index_add_(0, batch_seg, P)
         return P
