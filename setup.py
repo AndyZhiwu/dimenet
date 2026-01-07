@@ -4,8 +4,8 @@ install_requires = [
         "numpy",
         "scipy>=1.3",
         "sympy>=1.5",
-        "tensorflow>=2.1",
-        "tensorflow_addons",
+        "torch>=1.9.0",
+        "torch_geometric>=2.0.0",
         "tqdm",
 ]
 

@@ -1,29 +1,26 @@
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers
+import torch
+import torch.nn as nn
 
 from .envelope import Envelope
 
 
-class BesselBasisLayer(layers.Layer):
-    def __init__(self, num_radial, cutoff, envelope_exponent=5,
-                 name='bessel_basis', **kwargs):
-        super().__init__(name=name, **kwargs)
+class BesselBasisLayer(nn.Module):
+    def __init__(self, num_radial, cutoff, envelope_exponent=5):
+        super().__init__()
         self.num_radial = num_radial
-        self.inv_cutoff = tf.constant(1 / cutoff, dtype=tf.float32)
+        self.inv_cutoff = torch.tensor(1 / cutoff, dtype=torch.float32)
         self.envelope = Envelope(envelope_exponent)
 
         # Initialize frequencies at canonical positions
-        def freq_init(shape, dtype):
-            return tf.constant(np.pi * np.arange(1, shape + 1, dtype=np.float32), dtype=dtype)
-        self.frequencies = self.add_weight(name="frequencies", shape=self.num_radial,
-                                           dtype=tf.float32, initializer=freq_init, trainable=True)
+        freq_init = torch.tensor(np.pi * np.arange(1, num_radial + 1, dtype=np.float32), dtype=torch.float32)
+        self.frequencies = nn.Parameter(freq_init)
 
-    def call(self, inputs):
+    def forward(self, inputs):
         d_scaled = inputs * self.inv_cutoff
 
         # Necessary for proper broadcasting behaviour
-        d_scaled = tf.expand_dims(d_scaled, -1)
+        d_scaled = d_scaled.unsqueeze(-1)
 
         d_cutoff = self.envelope(d_scaled)
-        return d_cutoff * tf.sin(self.frequencies * d_scaled)
+        return d_cutoff * torch.sin(self.frequencies * d_scaled)

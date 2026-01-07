@@ -1,7 +1,8 @@
-import tensorflow as tf
+import torch
+import torch.nn as nn
 
 
-class GlorotOrthogonal(tf.initializers.Initializer):
+class GlorotOrthogonal:
     """
     Generate a weight matrix with variance according to Glorot initialization.
     Based on a random (semi-)orthogonal matrix neural networks
@@ -12,12 +13,13 @@ class GlorotOrthogonal(tf.initializers.Initializer):
     """
 
     def __init__(self, scale=2.0, seed=None):
-        super().__init__()
-        self.orth_init = tf.initializers.Orthogonal(seed=seed)
         self.scale = scale
+        self.seed = seed
 
-    def __call__(self, shape, dtype=tf.float32):
-        assert len(shape) == 2
-        W = self.orth_init(shape, dtype)
-        W *= tf.sqrt(self.scale / ((shape[0] + shape[1]) * tf.math.reduce_variance(W)))
-        return W
+    def __call__(self, tensor):
+        assert len(tensor.shape) == 2
+        if self.seed is not None:
+            torch.manual_seed(self.seed)
+        nn.init.orthogonal_(tensor)
+        tensor.data *= torch.sqrt(torch.tensor(self.scale / ((tensor.shape[0] + tensor.shape[1]) * torch.var(tensor))))
+        return tensor

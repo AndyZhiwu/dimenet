@@ -10,3 +10,13 @@ __pycache__
 
 # pytest
 .pytest_cache
+
+# PyTorch
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+
+# TensorBoard
+runs/
+events.out.tfevents.*

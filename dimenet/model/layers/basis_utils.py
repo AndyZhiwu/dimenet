@@ -78,7 +78,8 @@ def sph_harm_prefactor(l, m):
     l: int, l>=0
     m: int, -l<=m<=l
     """
-    return ((2*l+1) * np.math.factorial(l-abs(m)) / (4*np.pi*np.math.factorial(l+abs(m))))**0.5
+    import math
+    return ((2*l+1) * math.factorial(l-abs(m)) / (4*np.pi*math.factorial(l+abs(m))))**0.5
 
 
 def associated_legendre_polynomials(l, zero_m_only=True):

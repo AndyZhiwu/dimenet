@@ -1,4 +1,6 @@
-# Directional Message Passing Neural Network (DimeNet and DimeNet++)
+# Directional Message Passing Neural Network (DimeNet and DimeNet++) - PyTorch Implementation
+
+> **Note:** This is a PyTorch implementation of DimeNet and DimeNet++. The file structure and logic are maintained as closely as possible to the original TensorFlow version. For the official TensorFlow implementation, please refer to the original repository.
 
 <p align="center">
 <img src="https://github.com/gasteigerjo/dimenet/blob/master/2dfilters_large_layer2.png?raw=true">
@@ -25,11 +27,11 @@ If you are interested in energy and force predictions, we now recommend our new 
 ## Run the code
 This repository contains a notebook for training the model (`train.ipynb`) and for generating predictions on the test set with a trained model (`predict.ipynb`). It also contains a script for training the model on a cluster with Sacred and [SEML](https://github.com/TUM-DAML/seml) (`train_seml.py`). For faster experimentation we also offer two sets of pretrained models, which you can find in the `pretrained` folder.
 
-## DimeNet++ and TF2
+## DimeNet++ and Model Details
 
 The new DimeNet++ model is both 8x faster and 10% more accurate, so we recommend using this model instead of the original.
 
-There are some slight differences between this repository and the original (TF1) DimeNet model, such as slightly different training and initialization in TF2. This implementation uses orthogonal Glorot initialization in the output layer for the targets alpha, R2, U0, U, H, G, and Cv and zero initialization for Mu, HOMO, LUMO, and ZPVE. The paper only used zero initialization for the output layer.
+This PyTorch implementation maintains the same architecture and behavior as the TensorFlow version. There are some slight differences between the original TensorFlow and this PyTorch implementation in terms of random initialization, but the architecture and forward pass logic remain consistent.
 
 The following table gives an overview of all MAEs. Note that the QM9 dataset used here suffers from an off-by-one error (see [#24](https://github.com/gasteigerjo/dimenet/issues/24)).
 
@@ -63,8 +65,8 @@ The repository uses these packages:
 numpy
 scipy>=1.3
 sympy>=1.5
-tensorflow>=2.1
-tensorflow_addons
+torch>=1.9.0
+torch_geometric>=2.0.0
 tqdm
 ```
 
